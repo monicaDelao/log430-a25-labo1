@@ -5,22 +5,16 @@ on: [push, pull_request]
 jobs:
   build:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 15
 
     steps:
       - name: Checkout dépôt
         uses: actions/checkout@v3
 
-      - name: Installer Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.11'
-
       - name: Créer fichier .env
         run: |
-          cat > .env <<'EOF'
+          cat > .env <<EOF
           MYSQL_HOST=mysql
-          MYSQL_DATABASE=store_db
           MYSQL_DB_NAME=store_db
           DB_USERNAME=root
           DB_PASSWORD=root
@@ -28,33 +22,23 @@ jobs:
           MONGODB_PORT=27017
           MONGODB_DATABASE=store_db
           EOF
-          echo "Fichier .env utilisé :"
-          cat .env
 
-      - name: Construire l'image (docker build)
-        run: docker build -t labo1-store-manager .
+      - name: Construire les conteneurs Docker
+        run: docker compose up -d --build
 
-      - name: Lancer les services (docker compose)
-        run: docker compose up -d
-
-      - name: Attendre que MySQL soit prêt + créer DB
+      - name: Attendre MySQL
         run: |
-          docker compose exec -T mysql sh -lc 'until mysqladmin ping -uroot -proot --silent; do sleep 1; done'
-          docker compose exec -T mysql sh -lc 'mysql -uroot -proot -e "CREATE DATABASE IF NOT EXISTS store_db;"'
+          docker compose exec -T mysql sh -c 'until mysqladmin ping -uroot -proot --silent; do sleep 1; done'
+          docker compose exec -T mysql sh -c 'mysql -uroot -proot -e "CREATE DATABASE IF NOT EXISTS store_db;"'
 
       - name: Copier .env dans le conteneur app
-        run: docker cp .env $(docker compose ps -q store_manager_app):/app/.env
+        run: |
+          APP_ID=$(docker compose ps -q store_manager_app)
+          docker cp .env $APP_ID:/app/.env
 
-      - name: Exécuter les tests dans le conteneur
+      - name: Lancer les tests
         run: docker compose exec -T store_manager_app pytest -q
 
       - name: Logs (si erreur)
         if: failure()
-        run: docker compose logs --no-color store_manager_app mysql mongo | tail -n 300
-
-      - name: Installer les dépendances
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
-          pip install pytest
-
+        run: docker compose logs --no-color store_manager_app mysql mongo | tail -n 200
