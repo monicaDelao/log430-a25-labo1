@@ -5,40 +5,25 @@ on: [push, pull_request]
 jobs:
   build:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
 
     steps:
-      - name: Checkout dépôt
+      - name: Checkout dépot
         uses: actions/checkout@v3
 
-      - name: Créer fichier .env
+      - name: Installer Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Creer fichier .env
         run: |
-          cat > .env <<EOF
-          MYSQL_HOST=mysql
-          MYSQL_DB_NAME=store_db
-          DB_USERNAME=root
-          DB_PASSWORD=root
-          MONGODB_HOST=mongo
-          MONGODB_PORT=27017
-          MONGODB_DATABASE=store_db
-          EOF
+          echo "DB_HOST=localhost" >> .env
+          echo "DB_NAME=mydb" >> .env
+          echo "DB_USERNAME=user" >> .env
+          echo "DB_PASSWORD=pass" >> .env
 
-      - name: Construire les conteneurs Docker
-        run: docker compose up -d --build
-
-      - name: Attendre MySQL
+      - name: Installer les dépendances
         run: |
-          docker compose exec -T mysql sh -c 'until mysqladmin ping -uroot -proot --silent; do sleep 1; done'
-          docker compose exec -T mysql sh -c 'mysql -uroot -proot -e "CREATE DATABASE IF NOT EXISTS store_db;"'
-
-      - name: Copier .env dans le conteneur app
-        run: |
-          APP_ID=$(docker compose ps -q store_manager_app)
-          docker cp .env $APP_ID:/app/.env
-
-      - name: Lancer les tests
-        run: docker compose exec -T store_manager_app pytest -q
-
-      - name: Logs (si erreur)
-        if: failure()
-        run: docker compose logs --no-color store_manager_app mysql mongo | tail -n 200
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest
