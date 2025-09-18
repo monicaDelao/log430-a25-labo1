@@ -4,15 +4,16 @@ SPDX - License - Identifier: LGPL - 3.0 - or -later
 Auteurs : Gabriel C. Ullmann, Fabio Petrillo, 2025
 """
 import os
-from dotenv import load_dotenv
+from dotenv import load_dotenv, find_dotenv
+from models import user
 import mysql.connector
 from models.user import User
 
 class UserDAO:
     def __init__(self):
         try:
-            env_path = "../.env"
-            print(os.path.abspath(env_path))
+            env_path = find_dotenv(".env.local") or find_dotenv()
+            print("Using .env:", env_path)
             load_dotenv(dotenv_path=env_path)
             db_host = os.getenv("MYSQL_HOST")
             db_name = os.getenv("MYSQL_DB_NAME")
@@ -41,12 +42,22 @@ class UserDAO:
         return self.cursor.lastrowid
 
     def update(self, user):
-        """ Update given user in MySQL """
-        pass
+        try:
+            sql = "UPDATE users SET name = %s, email = %s WHERE id = %s"
+            values = (user.name, user.email, user.id)
+            self.cursor.execute(sql, values)
+            self.conn.commit()
+        except Exception as e:
+            print("Erreur update :", e)
+        
 
     def delete(self, user_id):
-        """ Delete user from MySQL with given user ID """
-        pass
+        try:
+            sql = "DELETE FROM users WHERE id = %s"
+            self.cursor.execute(sql, (user_id,))
+            self.conn.commit()
+        except Exception as e:
+            print("Erreur delete :", e)
 
     def delete_all(self): #optional
         """ Empty users table in MySQL """

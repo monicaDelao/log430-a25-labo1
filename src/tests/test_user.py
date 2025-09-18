@@ -1,9 +1,18 @@
-from daos.user_dao import UserDAO
+from daos.user_dao_mongo import UserDAOMongo
 from models.user import User
 
-dao = UserDAO()
+dao = UserDAOMongo()
+
+def setup_function():
+    """Nettoyer la collection avant chaque test"""
+    dao.delete_all()
 
 def test_user_select():
+    # insérer 3 users initiaux
+    dao.insert(User(None, "Ada Lovelace", "alovelace@example.com"))
+    dao.insert(User(None, "Alan Turing", "aturing@example.com"))
+    dao.insert(User(None, "Adele Goldberg", "agoldberg@example.com"))
+
     user_list = dao.select_all()
     assert len(user_list) >= 3
 
@@ -21,7 +30,6 @@ def test_user_update():
     corrected_email = 'babbage@example.com'
     user.id = assigned_id
     user.email = corrected_email
-
     dao.update(user)
 
     user_list = dao.select_all()

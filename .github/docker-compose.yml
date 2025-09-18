@@ -1,0 +1,49 @@
+version: '3.8'
+
+services:
+  mysql:
+    image: mysql:8
+    container_name: mysql
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: store_db
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql-data:/var/lib/mysql
+
+  mongo:
+    image: mongo:6
+    container_name: mongo
+    restart: always
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo-data:/data/db
+    command: ["mongod", "--bind_ip_all", "--noauth"]
+
+  store_manager_app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: store_manager_app
+    depends_on:
+      - mysql
+      - mongo
+    environment:
+      MYSQL_HOST: mysql
+      MYSQL_DB_NAME: store_db
+      DB_USERNAME: root
+      DB_PASSWORD: root
+      MONGODB_HOST: mongo
+      MONGODB_PORT: 27017
+      MONGODB_DATABASE: store_db
+    volumes:
+      - .:/app
+    working_dir: /app
+    command: python src/store_manager.py
+
+volumes:
+  mysql-data:
+  mongo-data:

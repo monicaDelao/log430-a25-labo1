@@ -27,3 +27,6 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
           pip install pytest
+
+      - name: Exécuter les tests avec PYTHONPATH
+        run: PYTHONPATH=src pytest -q
