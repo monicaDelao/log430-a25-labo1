@@ -6,6 +6,32 @@ jobs:
   build:
     runs-on: ubuntu-latest
 
+    services:
+      mysql:
+        image: mysql:8
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: store_db
+          MYSQL_USER: user
+          MYSQL_PASSWORD: pass
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h localhost -uroot -proot"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+
+      mongo:
+        image: mongo:6
+        ports:
+          - 27017:27017
+        options: >-
+          --health-cmd="echo 'db.runCommand(\"ping\").ok' | mongosh --quiet"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+
     steps:
       - name: Checkout dépot
         uses: actions/checkout@v3
@@ -15,12 +41,15 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Creer fichier .env
+      - name: Créer fichier .env
         run: |
-          echo "DB_HOST=localhost" >> .env
-          echo "DB_NAME=mydb" >> .env
+          echo "MYSQL_HOST=127.0.0.1" >> .env
+          echo "MYSQL_DB_NAME=store_db" >> .env
           echo "DB_USERNAME=user" >> .env
           echo "DB_PASSWORD=pass" >> .env
+          echo "MONGODB_HOST=127.0.0.1" >> .env
+          echo "MONGODB_PORT=27017" >> .env
+          echo "MONGODB_DATABASE=store_db" >> .env
 
       - name: Installer les dépendances
         run: |
