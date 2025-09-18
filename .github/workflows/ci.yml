@@ -21,8 +21,6 @@ jobs:
           --health-interval=10s
           --health-timeout=5s
           --health-retries=5
-        volumes:
-          - ./db-init:/docker-entrypoint-initdb.d
 
       mongo:
         image: mongo:6
@@ -58,6 +56,15 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
           pip install pytest
+
+      - name: Wait for MySQL and init schema
+        run: |
+          sudo apt-get install -y mysql-client
+          for i in {1..10}; do
+            mysql -h 127.0.0.1 -uuser -ppass store_db < db-init/init.sql && break
+            echo " MySQL not ready yet, retrying..."
+            sleep 5
+          done
 
       - name: Exécuter les tests avec PYTHONPATH
         run: PYTHONPATH=src pytest -q
